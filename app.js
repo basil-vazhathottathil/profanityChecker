@@ -4,6 +4,7 @@ import { getQuery } from "ufo";
 import { createServer } from "http";
 import { readFileSync } from "fs";
 import path from "path";
+import { readFile } from "fs/promises";
 
 // Function to escape special characters in regex patterns
 function escapeRegex(word) {
@@ -11,8 +12,8 @@ function escapeRegex(word) {
 }
 
 // Load CSV and process banned words
-function loadBannedWords() {
-  const fileContent = readFileSync(path.join("D:/profanityCheck/theri.csv"), "utf-8");
+async function loadBannedWords() {
+  const fileContent = readFileSync(path.join("theri.csv"), "utf-8");
 
   return fileContent
     .split("\n")
