@@ -1,70 +1,83 @@
-// Import h3 as npm dependency
-import { createApp, createRouter, defineEventHandler, eventHandler } from "h3";
+import { createApp, createRouter, defineEventHandler } from "h3";
 import { getQuery } from "ufo";
 import { createServer } from "http";
-import { readFileSync } from "fs";
-import path from "path";
 import { readFile } from "fs/promises";
+import path from "path";
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Function to escape special characters in regex patterns
 function escapeRegex(word) {
-  return word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); // Escape regex special characters
+  return word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 // Load CSV and process banned words
 async function loadBannedWords() {
-  const fileContent = readFileSync(path.join("theri.csv"), "utf-8");
+    try {
+        const filePath = path.join(__dirname, "theri.csv");
+        const fileContent = await readFile(filePath, "utf-8");
 
-  return fileContent
-    .split("\n")
-    .map((line) => line.split(",")[0]?.trim()) // Extract the first column and remove spaces
-    .filter((word) => word.length > 0) // Remove empty words
-    .map(escapeRegex); // Escape special characters for regex safety
+        const lines = fileContent.split('\n');
+        const words = [];
+
+        // Skip the header line
+        for (let i = 1; i < lines.length; i++) {  // Start from index 1
+            const line = lines[i].trim();
+            if (!line) continue; // Skip empty lines
+
+            // Split each line by comma, but handle quoted commas
+            const values = line.split(',');
+            const phrase = values[0]?.replace(/^"|"$/g, '').trim(); // Remove quotes and trim
+
+            if (phrase) {
+                words.push(phrase);
+            }
+        }
+
+        return words.map(escapeRegex);
+
+    } catch (error) {
+        console.error("Error loading banned words:", error);
+        return [];
+    }
 }
 
 // Initial words and regex
-const words = loadBannedWords();
+let bannedRegex;
 
-// Ensure regex is valid
-const bannedRegex = words.length > 0  
-  ? new RegExp(`(${words.join("|")})`, "gi")  
-  : new RegExp(`$^`, "gi"); // Safe fallback regex (never matches)
+async function startServer() {
+  const words = await loadBannedWords();
 
-// Create an app instance
-export const app = createApp();
+  bannedRegex = words.length > 0
+    ? new RegExp(`\\b(${words.join("|")})\\b`, "gi")
+    : new RegExp(`$^`, "gi");
 
-// Create a new router and register it in app
-const router = createRouter();
-app.use(router);
+  const app = createApp();
+  const router = createRouter();
 
-// Add a new route that matches GET requests to / path
-router.get(
-  "/",
-  defineEventHandler((event) => {
+  router.get("/", defineEventHandler(() => {
     return { message: "⚡️ Tadaa!" };
-  })
-);
+  }));
 
-// Add a new route for checking text
-router.get(
-  "/check",
-  defineEventHandler((event) => {
-    const query = getQuery(event.node.req.url); // Get query parameters
+  router.get("/check", defineEventHandler((event) => {
+    const query = getQuery(event.node.req.url);
     const text = query.text ?? "";
-
-    const matches = text.match(bannedRegex); // Check for banned words
+    const matches = text.match(bannedRegex);
 
     return {
       text,
-      containsProfanity: matches !== null, // True if any matches are found
+      containsProfanity: matches !== null,
       matchedWords: matches || [],
     };
-  })
-);
+  }));
 
-// Start the server
-createServer(app).listen(3000, () => {
-  console.log("Server running at http://localhost:3000");
-});
+  app.use(router);
 
-// export default app
+  createServer(app).listen(3000, () => {
+    console.log("Server running at http://localhost:3000");
+  });
+}
+
+startServer();
