@@ -1,0 +1,21 @@
+{
+  "name": "profanity_checker",
+  "module": "app.js",
+  "type": "module",
+  "devDependencies": {
+    "@types/bun": "latest",
+    "nodemon": "^3.1.9"
+  },
+  "scripts": {
+    "dev": "nodemon app.js",
+    "start": "node app.js"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13.8",
+    "csv-parser": "^3.2.0",
+    "hono": "^4.7.2"
+  }
+}
