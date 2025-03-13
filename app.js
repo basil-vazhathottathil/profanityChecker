@@ -1,12 +1,8 @@
 import { Hono } from 'hono';
 import { serve } from '@hono/node-server';
-import fs from 'fs/promises';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import fetch from 'node-fetch'; // Import node-fetch
 
-// Get __dirname equivalent in ES module
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const CSV_URL = "https://raw.githubusercontent.com/basil-vazhathottathil/profanityChecker/refs/heads/main/cleaned_theri.csv";
 
 // Function to escape regex special characters
 function escapeRegex(word) {
@@ -16,8 +12,8 @@ function escapeRegex(word) {
 // Load banned words from CSV file
 async function loadBannedWords() {
   try {
-    const filePath = path.join(__dirname, "theri.csv");
-    const fileContent = await fs.readFile(filePath, "utf-8");
+    const response = await fetch(CSV_URL);
+    const fileContent = await response.text();
 
     const lines = fileContent.split("\n");
     const words = [];
